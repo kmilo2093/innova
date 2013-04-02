@@ -19,9 +19,11 @@ public class ObjectGenerator : MonoBehaviour{
 	public List<GameObject> backgrounds;
 	public List<GameObject> sky;
 	
+	public List<GameObject> mountains;
+	
 	public GameObject floor;
 	
-	public GameObject player;
+	public GameObject playerBoy, playerGirl;
 	public GameObject crowd;
 	
 	private float iniTime;
@@ -30,6 +32,8 @@ public class ObjectGenerator : MonoBehaviour{
 		
 	private bool segwayUsed;
 	
+	private bool failed=false;
+	
 	void Start(){
 		distanceRun = 0f;
 		
@@ -37,10 +41,13 @@ public class ObjectGenerator : MonoBehaviour{
 		current = new List<GameObject>();
 		
 		segwayUsed = false;
-		
-		Instantiate(player, player.transform.position, player.transform.rotation);
-
-		Instantiate(crowd, crowd.transform.position, crowd.transform.rotation);
+		if(!CharacterSelection.IsBoy){
+			Instantiate(playerGirl, playerGirl.transform.position, playerGirl.transform.rotation);
+		}else{
+			Instantiate(playerBoy, playerBoy.transform.position, playerBoy.transform.rotation);
+		}
+		crowd = Instantiate(crowd, crowd.transform.position, crowd.transform.rotation) as GameObject;
+		crowd.transform.parent = this.transform;
 		
 		Instantiate(floor, floor.transform.position, floor.transform.rotation);
 		
@@ -49,23 +56,33 @@ public class ObjectGenerator : MonoBehaviour{
 				sky[i].transform.rotation);
 		}
 		
-		for(int i = 0; i < backgrounds.Count; i++){
-				Instantiate(backgrounds[i], new Vector3(transform.position.x + (i * sceneryLength), 
-				(backgrounds[i].transform.position.y + sceneryHeight / 1.8f), backgrounds[i].transform.position.z), backgrounds[i].transform.rotation);
+		for(int i = 0; i < mountains.Count; i++){
+			Instantiate(mountains[i], new Vector3(mountains[i].transform.position.x + (i * skyLength), mountains[i].transform.position.y + 29, sky[i].transform.position.z), 
+				mountains[i].transform.rotation);
 		}
 		
+		for(int i = 0; i < backgrounds.Count - 1; i++){
+			backgrounds[i] = Instantiate(backgrounds[i], new Vector3(transform.position.x + (i * sceneryLength), 
+				(backgrounds[i].transform.position.y + sceneryHeight / 1.8f), backgrounds[i].transform.position.z), 
+				backgrounds[i].transform.rotation) as GameObject;
+			backgrounds[i].transform.parent = this.transform;
+		}
+		
+		Instantiate(backgrounds[backgrounds.Count - 1], new Vector3(transform.position.x + ((backgrounds.Count - 1) * sceneryLength), 
+			(backgrounds[backgrounds.Count - 1].transform.position.y + sceneryHeight / 1.8f), backgrounds[backgrounds.Count - 1].transform.position.z),
+			backgrounds[backgrounds.Count - 1].transform.rotation);
 	}
 	
 	void Update(){
 		distanceRun = Time.time * gameSpeed;
 		
 		if(Time.time - iniTime >= 1f){
-			createObstacles();
+			if (!failed) createObstacles();
 			iniTime = Time.time;
 		}
 		
 		//CAMBIAR "20" A UNA VARIABLE
-		if(distanceRun >= 2 && !segwayUsed){
+		if(distanceRun >= 0.8 && !segwayUsed){
 			createSegway();
 		}
 	}
@@ -84,10 +101,21 @@ public class ObjectGenerator : MonoBehaviour{
 	}
 	
 	void createSegway(){
-		//if(Mathf.RoundToInt(Random.Range(0, 5)) <= 2){
+//		if(Mathf.RoundToInt(Random.Range(0, 5)) <= 2){
 			Instantiate(segwayGO, new Vector3(transform.position.x + sceneryLength, transform.position.y, segwayGO.transform.position.z), 
 				segwayGO.transform.rotation);
-		//}
+//		}
 		segwayUsed = true;
+	}
+	
+	public void StopObstacles(){
+		failed=true;
+		foreach (Transform child in transform){
+			if (child.tag!="Crowd"){
+				if (child.tag=="Obstacle")
+					child.GetComponent<Obstacle>().speed = 0;
+				else child.GetComponent<Scenery>().speed = 0;
+			}
+		}
 	}
 }

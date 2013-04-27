@@ -16,11 +16,11 @@ public class LevelCtrl : MonoBehaviour {
 		
 	public float sceneryLength;
 	public float sceneryHeight;
-	
 	public float skyLength;
 	
-	public float gameSpeed;
-	public float maxGameSpeed;
+	public float gameSpeed = 50.0f;
+	public float maxGameSpeed = 90.0f;
+	public float accelerationRate = 1.0f;
 	public GameObject objectGenerator;
 	
 	public AudioClip introLoopPrincipal;
@@ -40,18 +40,24 @@ public class LevelCtrl : MonoBehaviour {
     private bool finished = false, lost = false;
     private float elapsedTime = 0.0f;
 
+    public Texture2D heart;
+
 	void Awake(){
 		levelCtrl = this;
 	}
 	
 	void Start(){
-		objectGenerator = Instantiate(objectGenerator, new Vector3(transform.position.x + sceneryLength, objectGenerator.transform.position.y, 
-			objectGenerator.transform.position.z), transform.rotation) as GameObject;
+        objectGenerator = Instantiate(objectGenerator, new Vector3(transform.position.x + sceneryLength / 2, objectGenerator.transform.position.y,
+            objectGenerator.transform.position.z), transform.rotation) as GameObject;
         Destroy(GameObject.Find("CharacterSelection"));
 		PlayLoopPrincipal();
 	}
 	
-	void Update(){		
+	void Update(){
+		
+		if(gameSpeed < maxGameSpeed){
+			gameSpeed += accelerationRate * Time.deltaTime;
+		}
 		
 		if (!audio.isPlaying){
 			if (audio.clip==introLoopPrincipal){
@@ -72,7 +78,7 @@ public class LevelCtrl : MonoBehaviour {
         if(finished){
             elapsedTime += Time.deltaTime;
             if(elapsedTime > audio.clip.length){
-                DontDestroyOnLoad(GameObject.FindGameObjectWithTag("Player"));
+                //DontDestroyOnLoad(GameObject.FindGameObjectWithTag("Player"));
                 Application.LoadLevel("Register");
             }
         }
@@ -80,22 +86,23 @@ public class LevelCtrl : MonoBehaviour {
 
     public void WinGame()
     {
-        Player.StopScore = true;
+        Player.Finished = true;
 		setSpeedToZero();
-        
+        Player.GotTicket = true;
         //Destroy(this.objectGenerator);
         PlayWin();
-        float length = audio.clip.length;
+//        float length = audio.clip.length;
         finished = true;
     }
 	
     public void LoseGame() {
         lost = true;
-        Player.StopScore = true;
+        Player.Finished = true;
+        Player.GotTicket = false;
         PlayFail();
 		setSpeedToZero();
         if(loseScreen != null){
-            loseScreen = (GameObject)GameObject.Instantiate(loseScreen, camera.transform.position + Vector3.forward * 10, Quaternion.identity);
+            loseScreen.SetActive(true);
         }       
     }
 	
@@ -104,17 +111,25 @@ public class LevelCtrl : MonoBehaviour {
         {
             GUI.skin = skin;
         }
-        GUI.Label(new Rect(0,0,Screen.width/8, Screen.height/8), "SCORE:");
-        GUI.TextField(new Rect(Screen.width/8, 0, Screen.width/8, Screen.height/8), Player.getScore().ToString());
 
-        GUI.Label(new Rect(3*Screen.width/4, 0, Screen.width / 8, Screen.height / 8), "Streak:");
-        GUI.TextField(new Rect(7*Screen.width/8, 0, Screen.width / 8, Screen.height / 8), "x"+JumpCounter.Counter);
+        //GUI.color = Color.black;
+        GUI.Label(new Rect(0, 0, Screen.width / 8, Screen.height / 16), "SCORE");
+
+        GUI.TextField(new Rect(Screen.width / 8, 0, Screen.width / 7, Screen.height / 16), ((int)Player.Score).ToString());
+        //TODO FIX STREAK LABEL
+        GUI.Label(new Rect(3 * Screen.width / 4 - Screen.width / 72, 0, Screen.width / 6, Screen.height / 16), "STREAK");
+        GUI.TextField(new Rect(7 * Screen.width / 8, 0, Screen.width / 10, Screen.height / 16), "x" + (Player.Streak));
 
         if (lost)
         {
-            if (GUI.Button(new Rect(Screen.width / 3, 3 * Screen.height / 5, Screen.width / 3, Screen.height / 5), "Retry")) {
-                Application.LoadLevel("CharacterSelection");
+            if (GUI.Button(new Rect(Screen.width / 3, 4 * Screen.height / 6, Screen.width / 3, Screen.height / 5), "Next")) {
+                Application.LoadLevel("Register");
             }
+        }
+
+        for (int i = 0; i < Player.Lifes; i++)
+        {
+            GUI.Label(new Rect( Screen.width/2 - 165/2 + (55 * i), 10, 50, 50), heart);
         }
 	}
 	
@@ -144,13 +159,13 @@ public class LevelCtrl : MonoBehaviour {
     //    }
     //    yield return new WaitForSeconds(audio.clip.length);
     //}
-//	
-//	public IEnumerator PlayFail() {
-//		audio.loop=false;
-//		audio.clip = audioFail;
-//		audio.Play();
-//        yield return new WaitForSeconds(audio.clip.length);
-//	}
+    //	
+    //	public IEnumerator PlayFail() {
+    //		audio.loop=false;
+    //		audio.clip = audioFail;
+    //		audio.Play();
+    //        yield return new WaitForSeconds(audio.clip.length);
+    //	}
 
     public void PlayWin()
     {
